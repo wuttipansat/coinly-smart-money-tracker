@@ -8,6 +8,7 @@ Example
 จ่ายค่าอาหาร 300 บาท
 paid 120 baht for coffee
 ได้รับเงินเดือน 30000 บาท
+```
 
 ## Features
 * Add income/expense using natural language
@@ -31,7 +32,7 @@ Create ```.env``` file:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-###Run app
+### Run app
 ```bash
 streamlit run app.py
 ```
