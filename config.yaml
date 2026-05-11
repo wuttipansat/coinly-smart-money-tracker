@@ -1,0 +1,25 @@
+categories:
+  income:
+    salary: "Monthly salary or regular job income"
+    freelance: "Freelance work income"
+    business: "Business income or sales income"
+    investment: "Dividends, interest, stock gain, crypto gain"
+    gift: "Money received as gift"
+    refund: "Cashback, returned money, refund"
+    other_income: "Income that does not fit above"
+
+  expense:
+    food: "Meals, lunch, dinner, restaurant, beverage, drink"
+    groceries: "Supermarket, ingredients, household food,"
+    transport: "Taxi, bus, train, fuel, parking"
+    rent: "Room rent, condo rent, house rent"
+    utilities: "Electricity, water"
+    phone_internet: "Phone bill, internet bill"
+    shopping: "Clothes, gadgets, online shopping"
+    health: "Medicine, hospital, clinic, insurance"
+    education: "Course, tuition, student fee"
+    entertainment: "Movie, game, music, activity"
+    travel: "Hotel, flight, trip"
+    subscription: "Netflix, Sportify, app subscription"
+    debt_payment: "Loan, credit card payment"
+    other_expense: "Expense that does not fit above"
