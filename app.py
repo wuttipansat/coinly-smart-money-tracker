@@ -178,12 +178,6 @@ if page == "Home":
             use_container_width=True
         )
 
-        st.dataframe(
-            expense_by_cat,
-            use_container_width=True,
-            hide_index=True
-        )
-
     st.divider()
 
     st.markdown("### Add Transaction")
