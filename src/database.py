@@ -53,6 +53,16 @@ def get_all_transactions():
     conn.close()
     return rows
 
+def delete_transaction(transaction_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""DELETE FROM transactions WHERE id = ?""", (transaction_id,))
+
+    conn.commit()
+    conn.close()
+
+    
 def remove_all_transactions(reset_id: bool = True):
 
     conn = get_connection()
@@ -62,6 +72,20 @@ def remove_all_transactions(reset_id: bool = True):
 
     if reset_id:
         cursor.execute("DELETE FROM sqlite_sequence WHERE name='transactions'")
+
+    conn.commit()
+    conn.close()
+
+def update_transaction(transaction_id, date, type_, category, amount, note):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    UPDATE transactions
+    SET date = ?, type = ?, category = ?, amount = ?, note = ?
+    WHERE id = ?
+
+    """, (date, type_, category, amount, note, transaction_id))
 
     conn.commit()
     conn.close()
