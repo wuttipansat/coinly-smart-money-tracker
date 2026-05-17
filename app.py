@@ -14,7 +14,7 @@ from src.supabase_database import (
 
 from src.transaction_service import save_transaction
 
-from src.llm_parser import parse_transaction
+from src.graph_parser import parse_transaction
 
 from src.report_service import (
     load_transactions_df,
