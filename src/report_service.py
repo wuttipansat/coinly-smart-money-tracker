@@ -1,62 +1,84 @@
-import sqlite3
 import pandas as pd
 
-from src.database import get_connection
+from src.mongodb_database import get_all_transactions
 
-def load_transactions_df() -> pd.DataFrame:
-    
-    conn =get_connection()
 
-    df = pd.read_sql_query(
-        """SELECT * FROM transactions ORDER BY date DESC""",
-        conn
+TRANSACTION_COLUMNS = [
+    "id",
+    "date",
+    "type",
+    "category",
+    "amount",
+    "note"
+]
+
+
+def load_transactions_df():
+    rows = get_all_transactions()
+
+    df = pd.DataFrame(
+        rows,
+        columns=TRANSACTION_COLUMNS
     )
 
-    conn.close()
+    if df.empty:
+        return df
+
+    df["amount"] = pd.to_numeric(
+        df["amount"],
+        errors="coerce"
+    ).fillna(0)
 
     return df
 
 
-def get_finance_summary() -> dict:
-
+def get_finance_summary():
     df = load_transactions_df()
+
     if df.empty:
         return {
             "total_income": 0,
             "total_expense": 0,
-            "balance": 0,
-            "transaction_count": 0
+            "balance": 0
         }
-    
-    total_income = df[df['type'] == "income"]["amount"].sum()
-    total_expense = df[df['type'] == "expense"]["amount"].sum()
+
+    total_income = df.loc[
+        df["type"] == "income",
+        "amount"
+    ].sum()
+
+    total_expense = df.loc[
+        df["type"] == "expense",
+        "amount"
+    ].sum()
+
     balance = total_income - total_expense
 
     return {
-            "total_income": total_income,
-            "total_expense": total_expense,
-            "balance": balance,
-            "transaction_count": len(df)
-        }
+        "total_income": total_income,
+        "total_expense": total_expense,
+        "balance": balance
+    }
 
-def get_expense_by_category() -> pd.DataFrame:
-    
+
+def get_expense_by_category():
     df = load_transactions_df()
+
     if df.empty:
-        return pd.DataFrame(columns=['category', 'amount'])
-    
-    expense_df = df[df['type'] == 'expense']
+        return pd.DataFrame(
+            columns=["category", "amount"]
+        )
+
+    expense_df = df[df["type"] == "expense"]
 
     if expense_df.empty:
-        return pd.DataFrame(columns=['category', 'amount'])
-    
-    result = (
+        return pd.DataFrame(
+            columns=["category", "amount"]
+        )
+
+    return (
         expense_df
-        .groupby('category', as_index=False)['amount']
+        .groupby("category", as_index=False)["amount"]
         .sum()
         .sort_values("amount", ascending=False)
     )
-
-
-    return result
-

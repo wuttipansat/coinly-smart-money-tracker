@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 
 
-from src.database import (
+from src.mongodb_database import (
     create_table, 
     remove_all_transactions, 
     delete_transaction,
@@ -615,15 +615,15 @@ elif page == "History":
 
                     with edit_col:
                         if st.button("✎", key=f"edit_{row['id']}", use_container_width=True):
-                            st.session_state.editing_transaction_id = int(row['id'])
+                            st.session_state.editing_transaction_id = str(row['id'])
                             st.rerun()
                     
                     with delete_col:
                         if st.button("🗑", key=f"delete_{row['id']}", use_container_width=True ):
-                            delete_transaction(int(row['id']))
+                            delete_transaction(str(row['id']))
                             st.success("Transaction deleted.")
                             st.rerun()
-                if st.session_state.editing_transaction_id == int(row["id"]):
+                if st.session_state.editing_transaction_id == str(row["id"]):
 
                     with st.form(key=f"edit_form_{row['id']}"):
                         new_date = st.text_input("Date", value=str(row["date"]))
@@ -650,7 +650,7 @@ elif page == "History":
 
                         if save_button:
                             update_transaction(
-                                transaction_id=int(row["id"]),
+                                transaction_id=str(row["id"]),
                                 date=new_date,
                                 type_=new_type,
                                 category=new_category,
