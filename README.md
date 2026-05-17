@@ -134,6 +134,7 @@ streamlit run app.py
 - Budget tracking
 - Recurring transactions
 - AI financial insights
+- **LangGraph Improvement**
 - **Mobile app version**
 
 ## Author
