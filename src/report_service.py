@@ -1,6 +1,7 @@
 import pandas as pd
+import streamlit as st
 
-from src.mongodb_database import get_all_transactions
+from src.supabase_database import get_all_transactions
 
 
 TRANSACTION_COLUMNS = [
@@ -13,8 +14,9 @@ TRANSACTION_COLUMNS = [
 ]
 
 
-def load_transactions_df():
-    rows = get_all_transactions()
+@st.cache_data(ttl=30)
+def load_transactions_df(user_id):
+    rows = get_all_transactions(user_id)
 
     df = pd.DataFrame(
         rows,
@@ -32,14 +34,14 @@ def load_transactions_df():
     return df
 
 
-def get_finance_summary():
-    df = load_transactions_df()
+def get_finance_summary(user_id):
+    df = load_transactions_df(user_id)
 
     if df.empty:
         return {
             "total_income": 0,
             "total_expense": 0,
-            "balance": 0
+            "balance": 0,
         }
 
     total_income = df.loc[
@@ -52,29 +54,23 @@ def get_finance_summary():
         "amount"
     ].sum()
 
-    balance = total_income - total_expense
-
     return {
         "total_income": total_income,
         "total_expense": total_expense,
-        "balance": balance
+        "balance": total_income - total_expense,
     }
 
 
-def get_expense_by_category():
-    df = load_transactions_df()
+def get_expense_by_category(user_id):
+    df = load_transactions_df(user_id)
 
     if df.empty:
-        return pd.DataFrame(
-            columns=["category", "amount"]
-        )
+        return pd.DataFrame(columns=["category", "amount"])
 
     expense_df = df[df["type"] == "expense"]
 
     if expense_df.empty:
-        return pd.DataFrame(
-            columns=["category", "amount"]
-        )
+        return pd.DataFrame(columns=["category", "amount"])
 
     return (
         expense_df

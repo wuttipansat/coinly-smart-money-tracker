@@ -4,9 +4,9 @@ import pandas as pd
 import plotly.express as px
 
 
-from src.mongodb_database import (
-    create_table, 
-    remove_all_transactions, 
+from src.supabase_database import (
+    create_table,
+    remove_all_transactions,
     delete_transaction,
     update_transaction,
     add_transaction
@@ -27,12 +27,20 @@ from src.config import (
     get_category_options
 )
 
+from src.auth_service import (
+    init_auth_state,
+    register_user,
+    login_user,
+    logout_user
+)
+
 st.set_page_config(
     page_title="Coinly",
     page_icon="🪙",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
 
 
 st.markdown(
@@ -171,21 +179,89 @@ def prepare_analytics_df(df):
 
     return df
 
-create_table()
+init_auth_state()
 
+
+def show_auth_page():
+    st.title("🪙 Coinly")
+    st.caption("Smart Personal Money Tracker")
+
+    login_tab, register_tab = st.tabs(["Login", "Register"])
+
+    with login_tab:
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+
+            submitted = st.form_submit_button(
+                "Login",
+                use_container_width=True
+            )
+
+        if submitted:
+            try:
+                success, message = login_user(email, password)
+
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+            except Exception as e:
+                st.error("Login failed.")
+                st.exception(e)
+
+    with register_tab:
+        with st.form("register_form"):
+            email = st.text_input("Email", key="register_email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="register_password"
+            )
+
+            submitted = st.form_submit_button(
+                "Create account",
+                use_container_width=True
+            )
+
+        if submitted:
+            try:
+                success, message = register_user(email, password)
+
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.warning(message)
+
+            except Exception as e:
+                st.error("Registration failed.")
+                st.exception(e)
+
+
+if not st.session_state.authenticated:
+    show_auth_page()
+    st.stop()
+
+
+user_id = st.session_state.user["id"]
+create_table()
 
 with st.sidebar:
     st.title("🪙 Coinly")
     st.caption("Smart Personal Money Tracker")
 
+    st.caption(f"Logged in as {st.session_state.user['email']}")
+
+    if st.button("Logout", use_container_width=True):
+        logout_user()
+
     page = st.radio(
         "Navigation",
         ["Home", "Analytics", "History", "Settings"]
     )
-
-    st.divider()
-    st.caption("Powered by LangChain")
-    st.caption("Developed by Wuttipan Satienpaisan")
 
 
 
@@ -201,7 +277,7 @@ if "pending_transaction" not in st.session_state:
     st.session_state.pending_transaction = None
 
 if page == "Home":
-    summary = get_finance_summary()
+    summary = get_finance_summary(user_id)
 
     st.metric("Total Income", f"฿{summary['total_income']:,.2f}")
     st.metric("Total Expense", f"฿{summary['total_expense']:,.2f}")
@@ -211,7 +287,7 @@ if page == "Home":
 
     st.markdown("### Spending")
 
-    expense_by_cat = get_expense_by_category()
+    expense_by_cat = get_expense_by_category(user_id)
 
     if expense_by_cat.empty:
         st.info("No expense data yet.")
@@ -334,12 +410,15 @@ if page == "Home":
 
                 if save_button:
                     add_transaction(
-                        date=edited_date.isoformat(),
+                        user_id=user_id,
+                        date=edited_date.isoformat() if hasattr(edited_date, "isoformat") else edited_date,
                         type_=edited_type,
                         category=edited_category,
                         amount=edited_amount,
                         note=edited_note
                     )
+
+                    st.cache_data.clear()
 
                     st.session_state.pending_transaction = None
                     st.success("Transaction saved successfully!")
@@ -352,7 +431,7 @@ if page == "Home":
 elif page == "Analytics":
     st.subheader("Dashboard Analytics")
     
-    transaction_df = load_transactions_df()
+    transaction_df = load_transactions_df(user_id)
 
     if transaction_df.empty:
         st.info("No transaction data yet.")
@@ -513,7 +592,7 @@ elif page == "Analytics":
 elif page == "History":
     st.subheader("Transaction History")
 
-    transaction_df = load_transactions_df()
+    transaction_df = load_transactions_df(user_id)
 
     if transaction_df.empty:
         st.info("No transaction data yet.")
@@ -615,12 +694,13 @@ elif page == "History":
 
                     with edit_col:
                         if st.button("✎", key=f"edit_{row['id']}", use_container_width=True):
-                            st.session_state.editing_transaction_id = str(row['id'])
+                            st.session_state.editing_transaction_id = selected_date_range(row['id'])
                             st.rerun()
                     
                     with delete_col:
                         if st.button("🗑", key=f"delete_{row['id']}", use_container_width=True ):
-                            delete_transaction(str(row['id']))
+                            delete_transaction(user_id, int(row['id']))
+                            st.cache_data.clear()
                             st.success("Transaction deleted.")
                             st.rerun()
                 if st.session_state.editing_transaction_id == str(row["id"]):
@@ -650,13 +730,16 @@ elif page == "History":
 
                         if save_button:
                             update_transaction(
-                                transaction_id=str(row["id"]),
+                                user_id=user_id,
+                                transaction_id=int(row['id']),
                                 date=new_date,
                                 type_=new_type,
                                 category=new_category,
                                 amount=new_amount,
                                 note=new_note
                             )
+
+                            st.cache_data.clear()
 
                             st.session_state.editing_transaction_id = None
                             st.success("Transaction updated.")
@@ -681,7 +764,8 @@ elif page == "Settings":
 
     if submitted:
         if confirm_text == "DELETE":
-            remove_all_transactions(reset_id=True)
+            remove_all_transactions(user_id, reset_id=True)
+            st.cache_data.clear()
             st.success("All transactions removed.")
             st.rerun()
         else:
